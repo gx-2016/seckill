@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                            http://www.springframework.org/schema/beans/spring-beans.xsd
+                            http://www.springframework.org/schema/context
+                            http://www.springframework.org/schema/context/spring-context.xsd">
+    <!--1、数据库参数-->
+    <context:property-placeholder location="classpath:jdbc.properties"/>
+    <!--2、数据源-->
+    <bean name="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <!--连接池的基本属性-->
+        <property name="driverClass" value="${jdbc.driver}"></property>
+        <property name="jdbcUrl" value="${jdbc.url}"></property>
+        <property name="user" value="${jdbc.user}"></property>
+        <property name="password" value="${jdbc.password}"></property>
+        <!--连接池的私有属性-->
+        <property name="maxPoolSize" value="30"></property>
+        <property name="minPoolSize" value="10"></property>
+        <!--连接超时时间-->
+        <property name="checkoutTimeout" value="1000"></property>
+        <!--连接失败后重复链接的次数-->
+        <property name="acquireRetryAttempts" value="2"></property>
+        <!--链接关闭时，返给连接池 ，数据库不自动提交-->
+        <property name="autoCommitOnClose" value="false"></property>
+    </bean>
+
+    <!--约定大于配置 这些包扫描 新类型放入包下，会自动识别-->
+    <!--3、配置sqlSessionFactory-->
+    <bean name="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--注入数据源-->
+        <property name="dataSource" ref="dataSource"></property>
+        <!--配置mybatis全局配置文件-->
+        <property name="configLocation" value="classpath:mybatis-configure.xml"></property>
+        <!--配置实体类别名 （整合spring更少的配置） -->
+        <property name="typeAliasesPackage" value="com.seckill.entity"></property>
+        <!--配置sql映射文件扫描包-->
+        <property name="mapperLocations" value="classpath:mapper/*.xml"></property>
+    </bean>
+
+    <!--4、配置扫描Dao接口 ：动态实例化 并自动注入spring容器-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!--后处理器的方式 注入，因为加载配置文件的时候，数据库的属性还有可能没有准备好，此时的dataSource初始化为错的，
+               所以通过后处理bean的方式，在需要用的时候才去实例化-->
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+        <property name="basePackage" value="com.seckill.dao"></property>
+    </bean>
+    <!--注入RedisDao-->
+    <bean id="redisDao" class="com.seckill.dao.cache.RedisDao">
+        <constructor-arg index="0" value="localhost"/>
+        <constructor-arg index="1" value="6379"/>
+    </bean>
+</beans>
